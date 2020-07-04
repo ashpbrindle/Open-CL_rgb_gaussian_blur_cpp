@@ -1,0 +1,213 @@
+#include <iostream>
+#include <vector>
+//Thread building blocks library
+#include <tbb/task_scheduler_init.h>
+#include "tbb/tbb.h"
+#include "math.h"
+//Free Image library
+#include <FreeImagePlus.h>
+
+using namespace std;
+using namespace tbb;
+
+int main()
+{
+    int nt = task_scheduler_init::default_num_threads();
+    task_scheduler_init T(nt);
+
+    //Part 1 (Greyscale Gaussian blur): -----------DO NOT REMOVE THIS COMMENT----------------------------//
+
+
+    const double sigma = 8.0;
+    const int kernel_size = 15;
+    const double pi = 3.14159265359;
+
+    int xkernel = kernel_size / 2;
+    int ykernel = kernel_size / 2;
+
+    bool xzero = false;
+    bool yzero = false;
+
+    vector<double> temp;
+    vector<double> kernel;
+    double total;
+    int index = 0;
+
+    for (int width_pos = 0; width_pos != kernel_size; width_pos++) {        // cycles through the kernel size and runs the equation to each of the differences
+        for (int height_pos = 0; height_pos != kernel_size; height_pos++) {
+
+            temp.push_back((1 / (2 * pi * (pow(sigma, 2)))) * exp(-(((pow(xkernel, 2)) + (pow(ykernel, 2))) / (2 * pow(sigma, 2)))));   // applies the equation
+            index += 1;
+
+            if (xkernel == 0) { xzero = true; }   // this will run through the first side of the kernel, once it reaches 0, it will run through the other side
+            if (xzero == false) { xkernel -= 1; }
+            else { xkernel += 1; }
+        }
+
+        xzero = false;      // x resets to the far left of the kernel again
+        xkernel = kernel_size / 2;
+
+        if (ykernel == 0) { yzero = true; }
+        if (yzero == false) { ykernel -= 1; } //changes the row for y
+        else { ykernel += 1; }
+    }
+
+    for (int index = 0; index != temp.size(); index++) { total += temp[index]; }    // adds up all of the kernel values
+
+    total = 1 / total;      // then divides the total by 1
+
+    int count = 1;  // used to display the kernel
+
+    for (int index = 0; index != temp.size(); index++) {
+        kernel.push_back(temp[index] * total);  //adds the value * total to the kernel for the final value
+    }
+
+
+    // -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+	// Setup Input image array
+	fipImage inputImage;
+    inputImage.load("../Images/grey_image.jpg");
+	inputImage.convertToFloat();
+
+    auto width = inputImage.getWidth();
+    auto height = inputImage.getHeight();
+    const float* const inputBuffer = (float*)inputImage.accessPixels();
+
+    // Setup output image array
+    fipImage outputImage;
+    outputImage = fipImage(FIT_FLOAT, width, height, 32);
+    float *outputBuffer = (float*)outputImage.accessPixels();
+
+    float total_calculation;
+
+    for (int y = kernel_size / 2; y < height - kernel_size; y++) {
+        for (int x = kernel_size / 2; x < width - kernel_size; x++) {
+
+            int current_position = y * width + x;
+
+            for (int kernel_height = 0; kernel_height < kernel_size; kernel_height++) {        // cycles through the kernel size and runs the equation to each of the differences
+                for (int kernel_width = 0; kernel_width < kernel_size; kernel_width++) {
+
+                    int kernel_pos = kernel_height * kernel_size + kernel_width;
+                   // if (x > kernel_size && y > kernel_size && x < width - kernel_size && y < height - kernel_size) {
+                        total_calculation += inputBuffer[(y + kernel_height) * width + (x + kernel_width)] * kernel[kernel_pos];
+                    //}
+
+                }
+            }
+            outputBuffer[current_position] = total_calculation;
+            total_calculation = 0;
+        }
+    }
+
+    outputImage.convertToType(FREE_IMAGE_TYPE::FIT_BITMAP);
+    outputImage.convertTo24Bits();
+    outputImage.save("grey_blurred.png");
+
+    auto outputwidth = outputImage.getWidth();
+    auto outputHeight = outputImage.getHeight();
+    cout << "Done";
+
+
+}
+
+
+//            double current_symbol = y * width + x;
+//            calculation.push_back((y-1) * width * (x-1));   // top left (width height)
+//            calculation.push_back((y-1) * width * (x));     //top middle
+//            calculation.push_back((y-1) * width * (x+1));   //top right
+//            calculation.push_back((y) * width * (x-1));     //middle left
+//            calculation.push_back((y) * width * (x));       //middle
+//            calculation.push_back((y) * width * (x+1));     //middle right
+//            calculation.push_back((y+1) * width * (x-1));   //bottom left
+//            calculation.push_back((y+1) * width * (x));     //bottom middle
+//            calculation.push_back((y+1) * width * (x+1));   //bottom right
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ //   //Part 2 (Colour image processing): -----------DO NOT REMOVE THIS COMMENT----------------------------//
+
+ //   // Setup Input image array
+ //   fipImage inputImage;
+ //   inputImage.load("../Images/render_1.png");
+
+ //   unsigned int width = inputImage.getWidth();
+ //   unsigned int height = inputImage.getHeight();
+
+ //   // Setup Output image array
+ //   fipImage outputImage;
+ //   outputImage = fipImage(FIT_BITMAP, width, height, 24);
+
+ //   //2D Vector to hold the RGB colour data of an image
+ //   vector<vector<RGBQUAD>> rgbValues;
+ //   rgbValues.resize(height, vector<RGBQUAD>(width));
+
+
+ //   RGBQUAD rgb;  //FreeImage structure to hold RGB values of a single pixel
+
+ //   //Extract colour data from image and store it as individual RGBQUAD elements for every pixel
+ //   for(int y = 0; y < height; y++)
+ //   {
+ //       for (int x = 0; x < width; x++)
+ //       {
+ //           inputImage.getPixelColor(x, y, &rgb); //Extract pixel(x,y) colour data and place it in rgb
+
+ //           rgbValues[y][x].rgbRed = rgb.rgbRed;
+ //           rgbValues[y][x].rgbGreen = rgb.rgbGreen;
+ //           rgbValues[y][x].rgbBlue = rgb.rgbBlue;
+ //       }
+ //   }
+
+ //   //Place the pixel colour values into output image
+ //   for(int y = 0; y < height; y++)
+ //   {
+ //       for (int x = 0; x < width; x++)
+ //       {
+ //           outputImage.setPixelColor(x, y, &rgbValues[y][x]);
+ //       }
+ //   }
+
+ //   //Save the processed image
+ //   outputImage.save("RGB_processed.png");
+
+
+	//return 0;
+//}
